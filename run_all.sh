@@ -4,9 +4,9 @@
 # Every step is resumable: re-running skips work that's already done.
 set -euo pipefail
 export HF_HOME="$PWD/hf_cache"
-TRANSLATE_N="${TRANSLATE_N:-2500}"
-LINUX_N="${LINUX_N:-2500}"
-FRESH_N="${FRESH_N:-800}"
+TRANSLATE_N="${TRANSLATE_N:-3000}"
+LINUX_N="${LINUX_N:-3500}"
+FRESH_N="${FRESH_N:-1500}"
 GEN_MINUTES="${GEN_MINUTES:-100}"   # hard time budget for data generation (booking ends at 05:00)
 
 echo "[0/6] Setup  $(date)"

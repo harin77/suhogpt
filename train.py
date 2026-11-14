@@ -73,9 +73,9 @@ def kwargs_for(cls, **kw):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--model", default=BASE_MODEL)
-    p.add_argument("--epochs", type=float, default=2)
+    p.add_argument("--epochs", type=float, default=3)
     p.add_argument("--lr", type=float, default=1e-4)
-    p.add_argument("--rank", type=int, default=64)
+    p.add_argument("--rank", type=int, default=128)
     p.add_argument("--max-seq", type=int, default=2048)
     p.add_argument("--batch", type=int, default=4)
     p.add_argument("--grad-accum", type=int, default=4)

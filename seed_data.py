@@ -530,4 +530,121 @@ SEED = [
         "- `most_common(10)` → adhigama fail aana top 10 IPs-a print pannum\n\n"
         "Run panna `sudo python3 analyzer.py` (auth.log padikka sudo venum). Next step-a threshold vachu alert panna try pannunga!",
     ],
+
+    # =====================================================================
+    # FIXES for weak answers found in benchmarking
+    # =====================================================================
+    [
+        "ssh port-a 22 la irundhu 2222 ku maathanum, epdi?",
+        "Rendu vishayam pannanum: SSH config-la port maathanum, apram firewall-la allow pannanum.\n\n"
+        "1. **Config edit pannunga:**\n```bash\nsudo nano /etc/ssh/sshd_config\n```\n"
+        "`#Port 22` nu irukura line-a kandupidichu, idha maari maathunga (comment `#` remove pannunga):\n```\nPort 2222\n```\n\n"
+        "2. **Firewall-la pudhu port allow pannunga** (idha marandha lock out aayiduveenga):\n```bash\nsudo ufw allow 2222/tcp     # ufw use pannina\n```\n\n"
+        "3. **SELinux irundha** (Fedora/RHEL) port-a register pannunga:\n```bash\nsudo semanage port -a -t ssh_port_t -p tcp 2222\n```\n\n"
+        "4. **SSH restart pannunga:**\n```bash\nsudo systemctl restart sshd\n```\n\n"
+        "5. **Pudhu port-la connect pannunga:**\n```bash\nssh -p 2222 user@server_ip\n```\n\n"
+        "⚠️ Current SSH session-a close pannaadheenga. Pudhu terminal-la connect aagudhu nu confirm pannitu thaan pazhaya session-a close pannunga.",
+    ],
+    [
+        "nmap la -sS -sV -sC -sU flags ellam enna? difference enna?",
+        "Nmap scan type flags, ovvonnum vera vela pannum:\n\n"
+        "```bash\nnmap -sS 10.10.10.5    # SYN scan (stealth) – half-open TCP, default when root/sudo\nnmap -sT 10.10.10.5    # full TCP connect scan – root illana idhu thaan default\nnmap -sU 10.10.10.5    # UDP scan – DNS, SNMP maari UDP services (slow)\nnmap -sV 10.10.10.5    # service + version detection (Apache 2.4.52 maari)\nnmap -sC 10.10.10.5    # default NSE scripts run pannum (common checks)\nnmap -O 10.10.10.5     # OS detection\nnmap -A 10.10.10.5     # -O -sV -sC ellam serndhu (aggressive)\n```\n\n"
+        "Clarify panna:\n"
+        "- **-sS** = TCP SYN scan. Full handshake complete pannaama irukkum, adhanaala 'stealth' nu solluvaanga. SSL/TLS-ku sambandham illa.\n"
+        "- **-sV** = port open-a irundha, andha service enna, endha version nu kandupidikum\n"
+        "- **-sC** = `--script=default`, safe NSE scripts run pannum\n\n"
+        "CTF/HTB common start: `nmap -sC -sV -p- --min-rate 5000 <ip>`. Unga own machine illa authorized target-la mattum scan pannunga.",
+    ],
+
+    # =====================================================================
+    # BLUE TEAM – defense, detection, incident response, forensics
+    # =====================================================================
+    [
+        "oru server hack aaiduchu nu doubt. incident response epdi start pannradhu?",
+        "Panic pannaadheenga. Standard IR process (SANS PICERL) follow pannunga:\n\n"
+        "1. **Preparation** – idhu munnadiye ready-a vachukkanum (backups, logs, contacts)\n"
+        "2. **Identification** – unmaiyaave incident-a nu confirm pannunga:\n```bash\nlast -a | head                      # yaar login aanaanga\nss -tnp state established           # active connections – theriyaadha IP irukka?\nps aux --sort=-%cpu | head          # suspicious processes\nsudo journalctl --since \"1 hour ago\" | grep -iE \"fail|error\"\n```\n"
+        "3. **Containment** – spread aagaama thadukkanum. Network-la irundhu isolate pannunga (power off panna koodadhu — RAM evidence pogum):\n```bash\nsudo iptables -A INPUT -s <attacker_ip> -j DROP   # specific IP block\n```\n"
+        "4. **Eradication** – malware, backdoor, pudhu users remove pannunga\n"
+        "5. **Recovery** – clean backup-la irundhu restore, patch, monitor\n"
+        "6. **Lessons learned** – epdi vandhuchu, next time epdi thadukuradhu nu document pannunga\n\n"
+        "⚠️ Serious-a irundha evidence-a preserve pannunga (disk image, memory dump) and professionals-a contact pannunga. Compromised system-la irundhu commands run pannradhu attacker-ku theriyalaam.",
+    ],
+    [
+        "linux la malware persistence epdi kandupidikuradhu? blue team view",
+        "Attackers reboot aanalum survive aaga pala idangalla persistence vachuppaanga. Ivangala check pannunga:\n\n"
+        "```bash\n# 1. Cron jobs (ella users-um)\nfor u in $(cut -f1 -d: /etc/passwd); do crontab -l -u $u 2>/dev/null; done\nls -la /etc/cron.* /etc/crontab\n\n# 2. systemd services & timers\nsystemctl list-units --type=service --state=running\nsystemctl list-timers --all\nls -la /etc/systemd/system/ ~/.config/systemd/user/\n\n# 3. Startup / profile files\ncat ~/.bashrc ~/.bash_profile /etc/rc.local 2>/dev/null\n\n# 4. SSH authorized_keys (attacker thanga key podhuvaan)\nfind / -name authorized_keys 2>/dev/null -exec ls -la {} \\;\n\n# 5. SUID binaries (privilege escalation-ku)\nfind / -perm -4000 -type f 2>/dev/null\n\n# 6. Recently modified files (last 2 days)\nfind /etc /usr/bin /usr/sbin -mtime -2 -type f 2>/dev/null\n```\n\n"
+        "Baseline (clean system) jodhu compare pannina maaruna files easy-a theriyum. `rkhunter --check` and `chkrootkit` maari tools-um use pannalam.",
+    ],
+    [
+        "Wazuh / SIEM na enna? yen venum?",
+        "**SIEM** (Security Information and Event Management) na, ella systems-oda logs-a oru idathla serthu, rules vachu attacks-a automatic-a detect panni alert kudukkura tool.\n\n"
+        "**Wazuh** oru popular free & open-source SIEM/XDR:\n"
+        "- Ovvoru machine-layum oru **agent** install aagum, adhu logs, file changes, running processes anuppum\n"
+        "- Central **manager** andha data-va rules jodhu match panni alerts generate pannum\n"
+        "- Web dashboard-la ella alerts-ayum paakalam\n\n"
+        "Enna detect pannum:\n- Brute force login attempts\n- File integrity changes (`/etc/passwd` maarina)\n- Rootkits, known malware hashes\n- Suspicious commands\n- Compliance (PCI-DSS, CIS) violations\n\n"
+        "Chinna setup-ku single node-la manager + dashboard install pannalam. Home lab-la practice panna romba nalla tool — ovvoru machine-la agent podunga, apram oru brute force simulate panni alert varudha paarunga.",
+    ],
+    [
+        "memory la irundhu forensics epdi pannradhu?",
+        "RAM-la running processes, network connections, passwords, injected malware ellam irukkum — adhanaala memory forensics important.\n\n"
+        "1. **Memory capture pannunga** (live system-la):\n```bash\nsudo apt install avml      # Microsoft-oda simple tool\nsudo avml /evidence/mem.dump\n```\n"
+        "2. **Volatility 3 vachu analyze pannunga** (vera clean machine-la):\n```bash\npip install volatility3\n\n# Running processes\nvol -f mem.dump linux.pslist\n\n# Network connections\nvol -f mem.dump linux.sockstat\n\n# Suspicious process-oda command line\nvol -f mem.dump linux.psaux\n\n# Hidden/malicious processes (pslist jodhu compare)\nvol -f mem.dump linux.pstree\n```\n\n"
+        "Windows memory-ku `windows.pslist`, `windows.netscan`, `windows.malfind` maari plugins irukku. "
+        "Idha unga own lab-la illa authorized investigation-la mattum pannunga. Practice-ku malware sandbox dumps online kedaikum.",
+    ],
+    [
+        "detection rule epdi ezhudhuradhu? example sollu",
+        "Detection engineering na, attack behaviour-a pidikum rules ezhudhuradhu. **Sigma** (vendor-neutral format) learn panna nalladhu.\n\n"
+        "Example — Linux-la `/tmp`-la irundhu run aagura process (malware common trick):\n\n"
+        "```yaml\ntitle: Suspicious Execution From /tmp\nlogsource:\n  product: linux\n  category: process_creation\ndetection:\n  selection:\n    Image|startswith: '/tmp/'\n  condition: selection\nlevel: high\n```\n\n"
+        "Idha `sigma` tool vachu Wazuh, Splunk, Elastic query-a convert pannalam. Good rule-ku:\n"
+        "- **Behaviour-a pidikanum**, specific file name-a illa (attacker name maathiduvaan)\n"
+        "- **False positives kammi-a irukkanum** (legit software idha pannudha nu yosinga)\n"
+        "- **MITRE ATT&CK technique** jodhu map pannunga (idhu T1059 maari)\n\n"
+        "MITRE ATT&CK framework padinga — attackers use pannra techniques ellam adhula document pannirukaanga, detection-ku base adhu thaan.",
+    ],
+
+    # =====================================================================
+    # RED TEAM EDUCATION – how it works, for authorized testing / CTF only
+    # =====================================================================
+    [
+        "privilege escalation na enna? linux la common techniques enna? (learning)",
+        "Privilege escalation na, low-privilege access-la irundhu root/admin-ku pogaradhu. Pentesters authorized engagement-la idha test pannuvaanga; defenders idha theris thaan thadukka mudiyum.\n\n"
+        "Common Linux privesc vectors (concept level):\n"
+        "- **SUID binaries** – root-a run aagura files; sila (GTFOBins-la list pannirukaanga) misuse pannalam\n```bash\nfind / -perm -4000 -type f 2>/dev/null   # check pannunga\n```\n"
+        "- **Sudo misconfig** – `sudo -l` paarunga, password illama run panna mudiyura commands irukka?\n"
+        "- **Writable cron jobs** – root run pannra script-a nee edit panna mudiyumna\n"
+        "- **Kernel exploits** – pazhaya kernel version-la known CVE\n"
+        "- **Weak file permissions** – `/etc/passwd` illa `/etc/shadow` writable-a?\n\n"
+        "**Enumeration tool:** `linpeas.sh` ivana ellam automatic-a check pannum (unga own lab-la).\n\n"
+        "**Defense:** SUID minimize pannunga, sudo rules tight-a vachukonga, patching regular-a pannunga, file permissions audit pannunga. Idha unga own machine illa HackTheBox/TryHackMe maari legal labs-la mattum practice pannunga.",
+    ],
+    [
+        "Active Directory attacks epdi work aagudhu? defend epdi? (learning)",
+        "Corporate networks mostly Windows Active Directory (AD) use pannum, adhanaala pentesters & defenders rendu perum idha theriyanum.\n\n"
+        "**Common attack concepts (authorized testing):**\n"
+        "- **Kerberoasting** – service account-oda ticket request panni, offline-la password crack panna try pannradhu\n"
+        "- **Pass-the-Hash** – password illama, NTLM hash vach authenticate pannradhu\n"
+        "- **LLMNR/NBT-NS poisoning** – network-la fake responses anuppi credentials capture pannradhu\n"
+        "- **DCSync** – domain controller maari pretend panni password hashes request pannradhu\n\n"
+        "Tools (labs-la): BloodHound (attack paths visualize pannum), Impacket, Responder.\n\n"
+        "**Blue team defense:**\n"
+        "- Service accounts-ku long, random passwords (25+ chars) + gMSA use pannunga\n"
+        "- LLMNR/NBT-NS disable pannunga\n"
+        "- Tier-0 admin accounts-a protect pannunga, separate workstations\n"
+        "- Logging: Event ID 4769 (Kerberos), 4624/4625 (logins) monitor pannunga\n"
+        "- Microsoft LAPS vachu local admin passwords randomize pannunga\n\n"
+        "Practice panna: unga own AD lab (GOAD — Game of Active Directory) setup pannunga, illa HackTheBox Pro Labs. Vera organization network-la permission illama idha panna koodadhu — illegal.",
+    ],
+    [
+        "Metasploit na enna? basic workflow sollu (CTF ku)",
+        "Metasploit oru penetration testing framework — known vulnerabilities-a test panna modules, payloads ellam vachirukku. Unga own lab illa authorized target-la mattum.\n\n"
+        "Basic workflow:\n```bash\nmsfconsole                          # start\n\nsearch type:exploit vsftpd          # vulnerability-ku module thedunga\nuse exploit/unix/ftp/vsftpd_234_backdoor\n\nshow options                        # enna set pannanum nu paarunga\nset RHOSTS 10.10.10.5               # target\nset LHOST tun0                       # unga IP (reverse connection-ku)\n\ncheck                               # vulnerable-a nu safe-a check (module support pannina)\nexploit                             # run\n```\n\n"
+        "Idhu vulnerable-a irundha oru session (shell/meterpreter) kedaikum. `sessions -i 1` vachu interact pannalam.\n\n"
+        "**Learning path:** Metasploitable2/3 (purposely vulnerable VM) unga own lab-la download pann practice pannunga, illa TryHackMe Metasploit room. "
+        "Idha oru skill-a kathukkanumna defensive side-um theriyanum — idhe exploits-a patch panni, IDS-la detect panni thaan real security work.",
+    ],
+
 ]

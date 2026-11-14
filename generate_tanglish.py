@@ -98,6 +98,19 @@ TOPICS = [
     "Arch / CachyOS maintenance: updates, AUR safety, pacnew files, kernels",
     "Fedora / RHEL: dnf, SELinux, firewalld troubleshooting", "Kali Linux setup for a legal pentest lab",
     "hardening Arch-based vs Debian-based servers", "cloud security basics (IAM, S3 buckets)", "vulnerability management and CVEs", "SOC analyst daily tasks",
+    # Blue team / defense
+    "incident response steps (PICERL)", "Linux malware persistence hunting", "Windows event log analysis for intrusions",
+    "memory forensics with Volatility", "disk forensics and timeline analysis", "writing Sigma detection rules",
+    "SIEM and Wazuh setup and alerting", "threat hunting basics", "YARA rules for malware detection",
+    "network traffic analysis for intrusions", "endpoint hardening and CIS benchmarks", "log centralization and retention",
+    "detecting reverse shells and C2 traffic", "phishing email header analysis", "ransomware detection and recovery",
+    # Red team education (authorized testing / CTF framing, with defenses)
+    "Linux privilege escalation concepts and defenses", "Windows privilege escalation concepts and defenses",
+    "Active Directory attack concepts and defenses", "Kerberoasting explained with defenses",
+    "web exploitation methodology (OWASP WSTG)", "reverse engineering a binary basics",
+    "using Metasploit in a lab", "enumeration with linpeas and BloodHound",
+    "password cracking concepts (hashcat, john) and defenses", "pivoting and tunneling concepts",
+    "bug bounty recon methodology", "writing a safe proof-of-concept for a CTF",
 ]
 LEVELS = ["beginner", "beginner", "intermediate", "intermediate", "advanced"]
 

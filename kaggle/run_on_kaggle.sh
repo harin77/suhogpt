@@ -8,10 +8,10 @@ cd "$(dirname "$0")"
 export HF_HOME=/tmp/hf_cache
 export TOKENIZERS_PARALLELISM=false
 OUT=/kaggle/working
-TRANSLATE_N="${TRANSLATE_N:-1500}"
-LINUX_N="${LINUX_N:-2000}"
-FRESH_N="${FRESH_N:-500}"
-GEN_MINUTES="${GEN_MINUTES:-200}"     # hard time budget for the whole data-generation stage
+TRANSLATE_N="${TRANSLATE_N:-3000}"
+LINUX_N="${LINUX_N:-3500}"
+FRESH_N="${FRESH_N:-1500}"
+GEN_MINUTES="${GEN_MINUTES:-260}"     # hard time budget for the whole data-generation stage
 T0=$(date +%s)
 log() { echo "[$(( ($(date +%s)-T0)/60 )) min] $*"; }
 
