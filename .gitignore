@@ -1,0 +1,25 @@
+# --- secrets / personal account files (NEVER commit) ---
+race.sh
+launch_reservation.sh
+wait_for_3090.sh
+pod.json
+pod_start.json
+reservation.json
+*.key
+.env
+api_key
+
+# --- big / generated files ---
+kaggle_output/
+kaggle/kernel/
+outputs/
+data/
+hf_cache/
+vllm-env/
+*.gguf
+*.safetensors
+*.tar.gz
+*.zip
+__pycache__/
+*.pyc
+*.log
