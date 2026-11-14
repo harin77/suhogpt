@@ -5,14 +5,35 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
 class ChatMessage {
-  final String role; // user / assistant
-  String content;
+  final String role; // user / assistant / command (a command the user ran in Terminal mode)
+  String content; // for "command": the output
   double? tokensPerSec;
-  ChatMessage(this.role, this.content, {this.tokensPerSec});
+  String? command; // role == command
+  int? exitCode; // null while running
+  bool running = false;
+  ChatMessage(this.role, this.content, {this.tokensPerSec, this.command, this.exitCode});
 
-  Map<String, dynamic> toJson() => {'role': role, 'content': content, 'tps': tokensPerSec};
-  factory ChatMessage.fromJson(Map<String, dynamic> j) =>
-      ChatMessage(j['role'] as String, j['content'] as String, tokensPerSec: (j['tps'] as num?)?.toDouble());
+  Map<String, dynamic> toJson() => {
+        'role': role,
+        'content': content,
+        'tps': tokensPerSec,
+        if (command != null) 'cmd': command,
+        if (exitCode != null) 'exit': exitCode,
+      };
+  factory ChatMessage.fromJson(Map<String, dynamic> j) => ChatMessage(j['role'] as String, j['content'] as String,
+      tokensPerSec: (j['tps'] as num?)?.toDouble(), command: j['cmd'] as String?, exitCode: j['exit'] as int?);
+
+  /// What the model sees for this message.
+  Map<String, String> toPrompt() {
+    if (role != 'command') return {'role': role, 'content': content};
+    final out = content.trim().isEmpty ? '(no output)' : content.trim();
+    final clipped = out.length > 6000 ? '${out.substring(0, 3000)}\n…\n${out.substring(out.length - 3000)}' : out;
+    return {
+      'role': 'user',
+      'content': 'I ran this command:\n```\n$command\n```\nExit code: ${exitCode ?? '?'}\nOutput:\n```\n$clipped\n```\n'
+          'Explain the result briefly. If something failed, tell me why and the next command to try.',
+    };
+  }
 }
 
 class Conversation {
@@ -48,6 +69,7 @@ class PerfSettings {
   int contextSize;
   double temperature;
   bool lowRam; // smaller buffers + no prompt cache, for 8 GB machines
+  bool cliMode; // Terminal mode: Suho's commands get a Run button
   String modelPath; // the .gguf file
 
   PerfSettings({
@@ -57,6 +79,7 @@ class PerfSettings {
     this.contextSize = 4096,
     this.temperature = 0.4,
     this.lowRam = false,
+    this.cliMode = false,
     this.modelPath = '',
   });
 
@@ -70,6 +93,7 @@ class PerfSettings {
         'ctx': contextSize,
         'temp': temperature,
         'lowRam': lowRam,
+        'cli': cliMode,
         'modelPath': modelPath,
       };
   factory PerfSettings.fromJson(Map<String, dynamic> j) => PerfSettings(
@@ -79,6 +103,7 @@ class PerfSettings {
         contextSize: (j['ctx'] ?? 4096) as int,
         temperature: ((j['temp'] ?? 0.4) as num).toDouble(),
         lowRam: (j['lowRam'] ?? false) as bool,
+        cliMode: (j['cli'] ?? false) as bool,
         modelPath: (j['modelPath'] ?? '') as String,
       );
 }

@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import '../main.dart';
 import '../models.dart';
 import '../services/engine.dart';
+import '../services/shell.dart';
+import '../widgets/run_dialog.dart';
 import '../services/system_info.dart';
 import '../widgets/message_view.dart';
 import '../widgets/perf_panel.dart';
@@ -30,6 +32,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool userScrolledUp = false;
   SystemInfo? info;
   final engine = Engine.instance;
+  final shell = ShellRunner();
   bool restarting = false;
   Timer? poll;
 
@@ -79,6 +82,11 @@ class _ChatScreenState extends State<ChatScreen> {
       if (!chats.contains(convo)) chats.insert(0, convo);
     }
     convo.messages.add(ChatMessage('user', q));
+    await _reply(convo);
+  }
+
+  /// Ask Suho to answer the conversation as it is now (after a question or a command result).
+  Future<void> _reply(Conversation convo) async {
     final reply = ChatMessage('assistant', '');
     convo.messages.add(reply);
     convo.updated = DateTime.now();
@@ -112,6 +120,73 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _stop() => engine.stopReply();
+
+  /// Terminal mode: review -> run (in app or in a terminal window) -> Suho explains the output.
+  Future<void> _runCommand(String command) async {
+    if (streaming || shell.running) return;
+    final req = await RunDialog.show(context, command);
+    if (req == null || !mounted) return;
+    final convo = current;
+    final msg = ChatMessage('command', '', command: req.command);
+    convo.messages.add(msg);
+
+    if (req.choice == RunChoice.terminal) {
+      final ok = await ShellRunner.openInTerminal(req.command);
+      msg.content = ok
+          ? 'Opened in a terminal window. Copy the output into the chat if you want Suho to explain it.'
+          : 'No terminal app found. Copy the command and run it yourself.';
+      setState(() {});
+      await Store.saveChats(chats);
+      _scrollDown(force: true);
+      return;
+    }
+
+    setState(() => msg.running = true);
+    _scrollDown(force: true);
+    final res = await shell.run(req.command, onOutput: (t) {
+      msg.content += t;
+      if (mounted) setState(() {});
+      _scrollDown();
+    });
+    msg.running = false;
+    msg.exitCode = res.exitCode;
+    if (res.timedOut) msg.content += '\n⏱ Stopped after 2 minutes (timeout).';
+    if (res.stopped && !res.timedOut) msg.content += '\n⏹ Stopped by you.';
+    if (mounted) setState(() {});
+    await Store.saveChats(chats);
+    if (!res.stopped && mounted && identical(convo, current)) await _reply(convo); // Suho explains the output
+  }
+
+  Future<void> _toggleCli() async {
+    final turningOn = !settings.cliMode;
+    if (turningOn) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          icon: const Icon(Icons.terminal),
+          title: const Text('Turn on Terminal mode?'),
+          content: const SizedBox(
+            width: 480,
+            child: Text(
+              'Suho\'s command blocks get a ▶ Run button, and results are sent back to Suho to explain.\n\n'
+              '🛡  Nothing runs until you review it and click Run.\n'
+              '🛡  Each command gets a safety check with comments; destructive ones are blocked.\n'
+              '🛡  Admin (sudo) and never-ending commands open in a real terminal window.\n'
+              '🛡  Runs in your home folder, 2-minute limit, every command is logged.\n\n'
+              'Suho is a small AI and can be wrong – always read a command before running it.',
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Turn on')),
+          ],
+        ),
+      );
+      if (ok != true) return;
+    }
+    setState(() => settings.cliMode = turningOn);
+    await Store.saveSettings(settings);
+  }
 
   void _newChat() {
     if (streaming) return;
@@ -294,6 +369,8 @@ class _ChatScreenState extends State<ChatScreen> {
               child: MessageView(
                 msg: current.messages[i],
                 streaming: streaming && i == current.messages.length - 1,
+                onRun: settings.cliMode && !streaming && !shell.running ? _runCommand : null,
+                onStopCommand: shell.stop,
               ),
             ),
           ),
@@ -309,9 +386,23 @@ class _ChatScreenState extends State<ChatScreen> {
           constraints: const BoxConstraints(maxWidth: 800),
           child: Column(children: [
             Container(
-              padding: const EdgeInsets.fromLTRB(18, 4, 6, 4),
-              decoration: BoxDecoration(color: cs.surfaceContainer, borderRadius: BorderRadius.circular(26)),
+              padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainer,
+                borderRadius: BorderRadius.circular(26),
+                border: settings.cliMode ? Border.all(color: Colors.greenAccent.shade400.withValues(alpha: 0.5)) : null,
+              ),
               child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: IconButton(
+                    tooltip: settings.cliMode ? 'Terminal mode ON – click to turn off' : 'Turn on Terminal mode',
+                    isSelected: settings.cliMode,
+                    onPressed: _toggleCli,
+                    color: settings.cliMode ? Colors.greenAccent.shade400 : cs.onSurfaceVariant,
+                    icon: const Icon(Icons.terminal),
+                  ),
+                ),
                 Expanded(
                   child: Focus(
                     onKeyEvent: (_, e) {
@@ -331,8 +422,10 @@ class _ChatScreenState extends State<ChatScreen> {
                       minLines: 1,
                       maxLines: 8,
                       style: const TextStyle(fontSize: 14.5, height: 1.3),
-                      decoration: const InputDecoration(
-                        hintText: 'Message Suho…  (Shift+Enter for new line)',
+                      decoration: InputDecoration(
+                        hintText: settings.cliMode
+                            ? 'Terminal mode – ask Suho to check or fix something on your PC…'
+                            : 'Message Suho…  (Shift+Enter for new line)',
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(vertical: 10),
                         isDense: true,

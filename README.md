@@ -20,6 +20,13 @@ On first start, the app:
 2. downloads llama.cpp (~40 MB), or uses one already installed on your system if it has GPU support
 3. picks the best settings, including Low-RAM mode on 8 GB machines
 
+**Terminal mode (CLI):** click the terminal icon next to the chat box. Suho's command blocks get a ▶ **Run** button (bash on Linux, PowerShell on Windows), and the output goes back to Suho, who explains it. Safety rules:
+- nothing runs until you review it, and you can edit the command first
+- every command gets a safety check with comments (Safe / Caution / Dangerous / Blocked)
+- disk wipes, `rm -rf /`, fork bombs, formatting drives and deleting Windows system folders are **blocked**
+- sudo/admin and never-ending commands open in a real terminal window, where you type passwords yourself
+- commands run in your home folder with a 2-minute limit and a Stop button, and every command is logged to `command_history.log`
+
 **Performance panel:** Auto / GPU / CPU / Split (how many of the 37 layers go on the GPU), CPU threads, chat memory, Low-RAM mode, and live GPU / VRAM / RAM meters.
 
 ## Repository layout
