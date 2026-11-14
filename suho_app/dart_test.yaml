@@ -1,0 +1,4 @@
+tags:
+  gui:
+    # opens a real terminal window – run with: flutter test --tags gui
+    skip: "needs a desktop session"

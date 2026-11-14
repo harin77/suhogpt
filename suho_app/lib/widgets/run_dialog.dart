@@ -53,6 +53,7 @@ class _RunDialogState extends State<RunDialog> {
     final blocked = report.level == Risk.blocked;
     final needsTick = report.level == Risk.danger;
     final canRun = report.canRunInApp && (!needsTick || understood) && ctrl.text.trim().isNotEmpty;
+    final term = Platform.isWindows ? 'PowerShell window' : 'your terminal';
     final canTerminal = !blocked && !report.hasPlaceholder && (!needsTick || understood) && ctrl.text.trim().isNotEmpty;
 
     return AlertDialog(
@@ -127,11 +128,11 @@ class _RunDialogState extends State<RunDialog> {
               ),
             const SizedBox(height: 4),
             Text(
-              report.canRunInApp
-                  ? 'Runs in your home folder, max 2 minutes, without admin rights. Every command is logged.'
-                  : (blocked
-                      ? ''
-                      : 'This one opens in a terminal window, where you see everything and type any password yourself.'),
+              blocked
+                  ? ''
+                  : 'Opens in $term – you see everything and type any password yourself. '
+                      'The output is sent back to Suho to explain. Every command is logged.'
+                      '${report.canRunInApp ? '' : '\n(This one can only run in a terminal.)'}',
               style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
             ),
           ]),
@@ -139,16 +140,19 @@ class _RunDialogState extends State<RunDialog> {
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        OutlinedButton.icon(
-          onPressed: canTerminal ? () => Navigator.pop(context, RunRequest(ctrl.text.trim(), RunChoice.terminal)) : null,
-          icon: const Icon(Icons.open_in_new, size: 18),
-          label: const Text('Open in terminal'),
+        Tooltip(
+          message: 'Runs hidden inside the app (no window), 2-minute limit, no admin rights',
+          child: TextButton.icon(
+            onPressed: canRun ? () => Navigator.pop(context, RunRequest(ctrl.text.trim(), RunChoice.inApp)) : null,
+            icon: const Icon(Icons.visibility_off_outlined, size: 18),
+            label: const Text('Run hidden'),
+          ),
         ),
         FilledButton.icon(
           style: report.level == Risk.danger ? FilledButton.styleFrom(backgroundColor: Colors.orange.shade800) : null,
-          onPressed: canRun ? () => Navigator.pop(context, RunRequest(ctrl.text.trim(), RunChoice.inApp)) : null,
-          icon: const Icon(Icons.play_arrow_rounded),
-          label: const Text('Run here'),
+          onPressed: canTerminal ? () => Navigator.pop(context, RunRequest(ctrl.text.trim(), RunChoice.terminal)) : null,
+          icon: const Icon(Icons.terminal, size: 18),
+          label: Text(Platform.isWindows ? 'Run in PowerShell' : 'Run in my terminal'),
         ),
       ],
     );

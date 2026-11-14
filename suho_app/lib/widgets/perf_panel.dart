@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../models.dart';
 import '../services/engine.dart';
+import '../services/shell.dart';
 import '../services/system_info.dart';
 import 'hardware_card.dart';
 
@@ -25,10 +26,14 @@ class _PerfPanelState extends State<PerfPanel> {
   Timer? timer;
   GpuLive? gpu;
   double? engineRamGb;
+  List<String> terminals = [];
 
   @override
   void initState() {
     super.initState();
+    if (Platform.isLinux) {
+      ShellRunner.installedTerminals().then((t) => mounted ? setState(() => terminals = t) : null);
+    }
     _poll();
     timer = Timer.periodic(const Duration(seconds: 2), (_) => _poll());
   }
@@ -145,6 +150,27 @@ class _PerfPanelState extends State<PerfPanel> {
               _slider('Creativity (temperature)', s.temperature.toStringAsFixed(1), s.temperature, 0, 1.2, 12,
                   (v) => setState(() => s.temperature = (v * 10).round() / 10),
                   hint: 'Low = precise commands. High = more creative.'),
+              if (Platform.isLinux) ...[
+                const SizedBox(height: 14),
+                Row(children: [
+                  const Icon(Icons.terminal, size: 18),
+                  const SizedBox(width: 8),
+                  const Text('Terminal app (Terminal mode)'),
+                  const Spacer(),
+                  DropdownButton<String>(
+                    value: s.terminal.isEmpty || terminals.contains(s.terminal) ? s.terminal : '',
+                    items: [
+                      DropdownMenuItem(
+                          value: '',
+                          child: Text('Automatic (desktop default${terminals.isEmpty ? '' : ' / ${terminals.first}'})')),
+                      for (final t in terminals) DropdownMenuItem(value: t, child: Text(t)),
+                    ],
+                    onChanged: (v) => setState(() => s.terminal = v ?? ''),
+                  ),
+                ]),
+                Text('Commands from Suho open in this terminal. Found: ${terminals.isEmpty ? 'none' : terminals.join(', ')}',
+                    style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+              ],
               const SizedBox(height: 14),
               Row(children: [
                 TextButton.icon(

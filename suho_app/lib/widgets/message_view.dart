@@ -235,7 +235,7 @@ class _CommandCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final ok = msg.exitCode == 0;
     final status = msg.running
-        ? 'running…'
+        ? (msg.inTerminal ? 'running in your terminal…' : 'running…')
         : msg.exitCode == null
             ? 'opened in terminal'
             : 'exit ${msg.exitCode}';
@@ -272,7 +272,7 @@ class _CommandCard extends StatelessWidget {
                 style: TextButton.styleFrom(foregroundColor: Colors.redAccent, visualDensity: VisualDensity.compact),
                 onPressed: onStop,
                 icon: const Icon(Icons.stop_rounded, size: 16),
-                label: const Text('Stop', style: TextStyle(fontSize: 12)),
+                label: Text(msg.inTerminal ? 'Stop waiting' : 'Stop', style: const TextStyle(fontSize: 12)),
               )
             else
               const SizedBox(width: 8),

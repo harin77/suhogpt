@@ -11,6 +11,7 @@ class ChatMessage {
   String? command; // role == command
   int? exitCode; // null while running
   bool running = false;
+  bool inTerminal = false; // ran in the user's terminal window
   ChatMessage(this.role, this.content, {this.tokensPerSec, this.command, this.exitCode});
 
   Map<String, dynamic> toJson() => {
@@ -70,6 +71,7 @@ class PerfSettings {
   double temperature;
   bool lowRam; // smaller buffers + no prompt cache, for 8 GB machines
   bool cliMode; // Terminal mode: Suho's commands get a Run button
+  String terminal; // Linux terminal app to use ('' = automatic)
   String modelPath; // the .gguf file
 
   PerfSettings({
@@ -80,6 +82,7 @@ class PerfSettings {
     this.temperature = 0.4,
     this.lowRam = false,
     this.cliMode = false,
+    this.terminal = '',
     this.modelPath = '',
   });
 
@@ -94,6 +97,7 @@ class PerfSettings {
         'temp': temperature,
         'lowRam': lowRam,
         'cli': cliMode,
+        'terminal': terminal,
         'modelPath': modelPath,
       };
   factory PerfSettings.fromJson(Map<String, dynamic> j) => PerfSettings(
@@ -104,6 +108,7 @@ class PerfSettings {
         temperature: ((j['temp'] ?? 0.4) as num).toDouble(),
         lowRam: (j['lowRam'] ?? false) as bool,
         cliMode: (j['cli'] ?? false) as bool,
+        terminal: (j['terminal'] ?? '') as String,
         modelPath: (j['modelPath'] ?? '') as String,
       );
 }
