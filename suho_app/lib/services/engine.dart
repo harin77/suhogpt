@@ -334,6 +334,7 @@ class Engine {
 
   // ----------------------------------------------------------------- chat
   Stream<ChatChunk> chat(List<ChatMessage> history, PerfSettings s) async* {
+    final system = s.cliMode ? '$kSystemPrompt\n\n${terminalModePrompt()}' : kSystemPrompt;
     final client = http.Client();
     _active = client;
     final started = DateTime.now();
@@ -346,8 +347,8 @@ class Engine {
         'top_p': 0.9,
         'repeat_penalty': 1.1,
         'messages': [
-          {'role': 'system', 'content': kSystemPrompt},
-          for (final m in history) {'role': m.role, 'content': m.content},
+          {'role': 'system', 'content': system},
+          for (final m in _mergeTurns(history)) m,
         ],
       });
     try {
@@ -379,6 +380,20 @@ class Engine {
     }
   }
 
+  /// Chat models expect user/assistant to alternate: merge back-to-back user turns.
+  static List<Map<String, String>> _mergeTurns(List<ChatMessage> history) {
+    final out = <Map<String, String>>[];
+    for (final m in history) {
+      final p = m.toPrompt();
+      if (out.isNotEmpty && out.last['role'] == p['role']) {
+        out.last = {'role': p['role']!, 'content': '${out.last['content']}\n\n${p['content']}'};
+      } else {
+        out.add(p);
+      }
+    }
+    return out;
+  }
+
   void stopReply() {
     _active?.close();
     _active = null;
@@ -404,4 +419,17 @@ Future<List<String>> findGgufFiles() async {
     } catch (_) {}
   }
   return found.toSet().toList();
+}
+
+/// Extra instructions while Terminal mode is on.
+String terminalModePrompt() {
+  final os = Platform.isWindows
+      ? 'Windows. Give commands for PowerShell in ```powershell code blocks'
+      : 'Linux. Give commands for bash in ```bash code blocks';
+  return 'TERMINAL MODE IS ON. The user is on $os. The app shows a Run button on each command block; '
+      'the user reviews and runs it, and the output is sent back to you. Rules: give ONE short command block '
+      'at a time, put a short # comment on every line, prefer read-only commands to inspect first, never suggest '
+      'destructive commands (deleting system files, formatting disks, disabling security), use placeholders like '
+      '<file> only when you really do not know the value, and warn clearly before anything risky. '
+      'When you get command output, explain it briefly and suggest the next step.';
 }
