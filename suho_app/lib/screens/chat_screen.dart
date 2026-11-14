@@ -130,28 +130,31 @@ class _ChatScreenState extends State<ChatScreen> {
     final msg = ChatMessage('command', '', command: req.command);
     convo.messages.add(msg);
 
-    if (req.choice == RunChoice.terminal) {
-      final ok = await ShellRunner.openInTerminal(req.command);
-      msg.content = ok
-          ? 'Opened in a terminal window. Copy the output into the chat if you want Suho to explain it.'
-          : 'No terminal app found. Copy the command and run it yourself.';
-      setState(() {});
-      await Store.saveChats(chats);
-      _scrollDown(force: true);
-      return;
-    }
-
+    msg.inTerminal = req.choice == RunChoice.terminal;
     setState(() => msg.running = true);
     _scrollDown(force: true);
-    final res = await shell.run(req.command, onOutput: (t) {
+    void onOut(String t) {
       msg.content += t;
       if (mounted) setState(() {});
       _scrollDown();
-    });
+    }
+
+    ShellRunner.preferredTerminal = settings.terminal;
+    final res = msg.inTerminal
+        ? await shell.runInTerminal(req.command, onOutput: onOut)
+        : await shell.run(req.command, onOutput: onOut);
     msg.running = false;
+    if (res == null) {
+      msg.content = 'No terminal app found. Pick one in ⚙ Performance → Terminal app, or use "Run hidden".';
+      setState(() {});
+      await Store.saveChats(chats);
+      return;
+    }
     msg.exitCode = res.exitCode;
     if (res.timedOut) msg.content += '\n⏱ Stopped after 2 minutes (timeout).';
-    if (res.stopped && !res.timedOut) msg.content += '\n⏹ Stopped by you.';
+    if (res.stopped && !res.timedOut) {
+      msg.content += msg.inTerminal ? '\n⏹ Stopped waiting (the terminal window may still be open).' : '\n⏹ Stopped by you.';
+    }
     if (mounted) setState(() {});
     await Store.saveChats(chats);
     if (!res.stopped && mounted && identical(convo, current)) await _reply(convo); // Suho explains the output

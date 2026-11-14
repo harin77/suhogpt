@@ -24,7 +24,7 @@ On first start, the app:
 - nothing runs until you review it, and you can edit the command first
 - every command gets a safety check with comments (Safe / Caution / Dangerous / Blocked)
 - disk wipes, `rm -rf /`, fork bombs, formatting drives and deleting Windows system folders are **blocked**
-- sudo/admin and never-ending commands open in a real terminal window, where you type passwords yourself
+- commands run in **your real terminal** (Ptyxis, Konsole, kitty, Alacritty… 35+ Linux terminals, or PowerShell on Windows), where you see everything and type sudo passwords yourself; the output is captured and sent back to Suho. You can pick the terminal in ⚙ Performance
 - commands run in your home folder with a 2-minute limit and a Stop button, and every command is logged to `command_history.log`
 
 **Performance panel:** Auto / GPU / CPU / Split (how many of the 37 layers go on the GPU), CPU threads, chat memory, Low-RAM mode, and live GPU / VRAM / RAM meters.
